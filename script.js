@@ -70,8 +70,9 @@ function renderConversations() {
 }
 
 function formatText(text) {
-	return escapeHTML(text).replace(/```([\s\S]*?)```/g,"<pre>$1</pre>").replace(/
-/g,"<br>");
+	return escapeHTML(text)
+		.replace(/```([\s\S]*?)```/g, "<pre>$1</pre>")
+		.replace(/\n/g, "<br>");
 }
 
 function renderMessages() {
