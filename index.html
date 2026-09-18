@@ -2,288 +2,59 @@
 <html lang="fa" dir="rtl">
 <head>
 	<meta charset="UTF-8">
-	<meta
-		name="viewport"
-		content="width=device-width, initial-scale=1.0"
-	>
-
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>T-Choob AI</title>
-
-	<link
-		rel="stylesheet"
-		href="style.css"
-	>
+	<link rel="stylesheet" href="style.css">
 </head>
-
 <body>
-
-	<div class="app">
-
-		<!-- =========================
-		     Sidebar
-		========================= -->
-
+	<div class="app-shell">
 		<aside class="sidebar" id="sidebar">
-
-			<div class="sidebar-header">
-
-				<div class="brand">
-					<div class="brand-mark">
-						T
-					</div>
-
-					<div class="brand-text">
-						<strong>T-Choob</strong>
-						<span>AI Assistant</span>
-					</div>
-				</div>
-
-				<button
-					class="sidebar-close"
-					id="sidebar-close"
-					type="button"
-					aria-label="بستن منو"
-				>
-					×
-				</button>
-
-			</div>
-
-
-			<button
-				class="new-chat"
-				id="new-chat"
-				type="button"
-			>
-				<span class="new-chat-icon">+</span>
-				<span>گفتگوی جدید</span>
-			</button>
-
-
-			<div class="conversation-title">
-				گفتگوهای اخیر
-			</div>
-
-
-			<div
-				class="conversation-list"
-				id="conversation-list"
-			>
-				<!-- گفتگوها با JavaScript ساخته می‌شوند -->
-			</div>
-
-
+			<div class="brand"><div class="brand-mark">T</div><div><strong>T-Choob</strong><span>AI Assistant</span></div></div>
+			<button class="new-chat-btn" id="new-chat-btn" type="button">＋ گفت‌وگوی جدید</button>
+			<div class="sidebar-title">گفت‌وگوها</div>
+			<div class="conversation-list" id="conversation-list"></div>
 			<div class="sidebar-bottom">
-
-				<button
-					class="sidebar-action"
-					type="button"
-					id="theme-toggle"
-				>
-					<span class="action-icon">◐</span>
-					<span id="theme-text">حالت تاریک</span>
-				</button>
-
-				<div class="sidebar-footer">
-					<span>T-Choob AI</span>
-					<small>نسخه آزمایشی</small>
-				</div>
-
+				<button class="side-action" id="theme-btn" type="button">حالت تاریک</button>
+				<button class="side-action danger" id="clear-btn" type="button">پاک کردن گفت‌وگوها</button>
 			</div>
-
 		</aside>
 
-
-		<!-- =========================
-		     Main
-		========================= -->
-
-		<main class="main">
-
-			<header class="topbar">
-
-				<div class="topbar-right">
-
-					<button
-						class="menu-button"
-						id="menu-button"
-						type="button"
-						aria-label="باز کردن منو"
-					>
-						<span></span>
-						<span></span>
-						<span></span>
-					</button>
-
-					<div class="mobile-brand">
-						T-Choob AI
-					</div>
-
+		<main class="chat-area">
+			<header class="chat-header">
+				<button class="mobile-menu" id="mobile-menu" type="button">☰</button>
+				<div class="chat-title">
+					<div class="assistant-avatar">T</div>
+					<div><strong>T-Choob AI</strong><span>دستیار هوشمند</span></div>
 				</div>
-
-
-				<div class="topbar-left">
-
-					<div class="status">
-						<span class="status-dot"></span>
-						<span>آماده پاسخگویی</span>
-					</div>
-
-				</div>
-
+				<div class="header-status"><span class="status-dot"></span> آماده</div>
 			</header>
 
-
-			<!-- =========================
-			     Chat Area
-			========================= -->
-
-			<section class="chat-area">
-
-				<div
-					class="messages"
-					id="messages"
-				>
-
-					<!-- Welcome -->
-
-					<div
-						class="welcome"
-						id="welcome"
-					>
-
-						<div class="welcome-logo">
-							T
-						</div>
-
-						<h1>
-							سلام! من دستیار T-Choob هستم.
-						</h1>
-
-						<p>
-							می‌تونی درباره محصولات، ایده‌ها،
-							برنامه‌نویسی، طراحی و خیلی چیزهای دیگه
-							با من صحبت کنی.
-						</p>
-
-
-						<div class="suggestions">
-
-							<button
-								type="button"
-								class="suggestion"
-								data-message="برای گسترش T-Choob چه ایده‌هایی داری؟"
-							>
-								<span>💡</span>
-								<span>
-									برای گسترش T-Choob چه ایده‌هایی داری؟
-								</span>
-							</button>
-
-
-							<button
-								type="button"
-								class="suggestion"
-								data-message="چطور می‌توانم یک کسب‌وکار اینترنتی بهتر بسازم؟"
-							>
-								<span>🚀</span>
-								<span>
-									چطور یک کسب‌وکار اینترنتی بهتر بسازم؟
-								</span>
-							</button>
-
-
-							<button
-								type="button"
-								class="suggestion"
-								data-message="یک ایده برای طراحی سایت T-Choob بده."
-							>
-								<span>🎨</span>
-								<span>
-									یک ایده برای طراحی سایت T-Choob بده.
-								</span>
-							</button>
-
-
-							<button
-								type="button"
-								class="suggestion"
-								data-message="چه قابلیت‌هایی می‌توانم به یک چت‌بات اضافه کنم؟"
-							>
-								<span>🤖</span>
-								<span>
-									چه قابلیت‌هایی می‌توانم به چت‌بات اضافه کنم؟
-								</span>
-							</button>
-
-						</div>
-
+			<section class="messages" id="messages">
+				<div class="welcome" id="welcome">
+					<div class="welcome-icon">T</div>
+					<h1>سلام، من T-Choob AI هستم</h1>
+					<p>سؤال بپرس، تصویر یا فایل بفرست و در صورت فعال بودن قابلیت، تصویر تولید کن.</p>
+					<div class="suggestions">
+						<button type="button" data-prompt="برای توسعه T-Choob چه ایده‌هایی داری؟">ایده برای توسعه T-Choob</button>
+						<button type="button" data-prompt="یک ساختار حرفه‌ای برای سایت T-Choob پیشنهاد بده.">ساختار سایت</button>
+						<button type="button" data-prompt="این کد را بررسی کن و ایرادهایش را بگو.">بررسی کد</button>
 					</div>
-
 				</div>
-
 			</section>
 
-
-			<!-- =========================
-			     Composer
-			========================= -->
-
-			<div class="composer-wrapper">
-
-				<div class="composer">
-
-					<textarea
-						id="message-input"
-						rows="1"
-						placeholder="پیام خود را بنویسید..."
-						aria-label="پیام"
-					></textarea>
-
-
-					<div class="composer-bottom">
-
-						<div class="composer-info">
-							T-Choob AI
-						</div>
-
-
-						<button
-							class="send-button"
-							id="send-button"
-							type="button"
-							aria-label="ارسال پیام"
-						>
-							<span>➤</span>
-						</button>
-
-					</div>
-
-				</div>
-
-
-				<div class="composer-note">
-					هوش مصنوعی ممکن است گاهی پاسخ نادرست تولید کند.
-				</div>
-
+			<div class="composer-wrap">
+				<div class="attachment-preview" id="attachment-preview"></div>
+				<form class="composer" id="composer">
+					<input id="file-input" type="file" hidden multiple accept="image/*,.pdf,.txt,.md,.csv,.json,.js,.html,.css,.py,.doc,.docx">
+					<button class="icon-btn" id="attach-btn" type="button" title="افزودن فایل">＋</button>
+					<textarea id="message-input" rows="1" placeholder="پیامت را بنوی..." autocomplete="off"></textarea>
+					<button class="generate-image-btn" id="generate-image-btn" type="button">تصویر</button>
+					<button class="send-btn" id="send-btn" type="submit">➤</button>
+				</form>
+				<div class="composer-note">کلید API فقط روی سرور نگهداری می‌شود.</div>
 			</div>
-
 		</main>
-
 	</div>
-
-
-	<!-- =========================
-	     Overlay
-	========================= -->
-
-	<div
-		class="overlay"
-		id="overlay"
-	></div>
-
-
 	<script src="script.js"></script>
-
 </body>
 </html>
