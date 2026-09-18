@@ -702,7 +702,7 @@ async function generateAssistantResponse(
 
 		const response =
 			await fetch(
-				"https://YOUR-VERCEL-URL.vercel.app/api/chat",
+				"https://t-choob-ai-api-api.vercel.app/api/chat",
 				{
 					method: "POST",
 
