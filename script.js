@@ -1,4 +1,4 @@
-const API_BASE_URL = "https://YOUR-VERCEL-PROJECT.vercel.app";
+const API_BASE_URL = "https://t-choob-ai-api-api.vercel.app";
 
 const state = { conversations: [], currentId: null, attachments: [], generating: false };
 const el = {
