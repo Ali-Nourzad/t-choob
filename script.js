@@ -1,1112 +1,251 @@
-/* =========================================================
-   T-Choob AI
-   Frontend Chat System
-========================================================= */
+const API_BASE_URL = "https://YOUR-VERCEL-PROJECT.vercel.app";
 
+const state = { conversations: [], currentId: null, attachments: [], generating: false };
+const el = {
+	list: document.getElementById("conversation-list"),
+	messages: document.getElementById("messages"),
+	welcome: document.getElementById("welcome"),
+	input: document.getElementById("message-input"),
+	form: document.getElementById("composer"),
+	send: document.getElementById("send-btn"),
+	fileInput: document.getElementById("file-input"),
+	attach: document.getElementById("attach-btn"),
+	preview: document.getElementById("attachment-preview"),
+	newChat: document.getElementById("new-chat-btn"),
+	theme: document.getElementById("theme-btn"),
+	clear: document.getElementById("clear-btn"),
+	mobileMenu: document.getElementById("mobile-menu"),
+	sidebar: document.getElementById("sidebar"),
+	generateImage: document.getElementById("generate-image-btn")
+};
 
-/* =========================================================
-   STATE
-========================================================= */
-
-let conversations = [];
-
-let activeConversationId = null;
-
-let isGenerating = false;
-
-
-/* =========================================================
-   DOM
-========================================================= */
-
-const messagesElement =
-	document.getElementById("messages");
-
-const welcomeElement =
-	document.getElementById("welcome");
-
-const messageInput =
-	document.getElementById("message-input");
-
-const sendButton =
-	document.getElementById("send-button");
-
-const conversationList =
-	document.getElementById("conversation-list");
-
-const newChatButton =
-	document.getElementById("new-chat");
-
-const themeToggle =
-	document.getElementById("theme-toggle");
-
-const themeText =
-	document.getElementById("theme-text");
-
-const menuButton =
-	document.getElementById("menu-button");
-
-const sidebar =
-	document.getElementById("sidebar");
-
-const sidebarClose =
-	document.getElementById("sidebar-close");
-
-const overlay =
-	document.getElementById("overlay");
-
-
-/* =========================================================
-   STORAGE
-========================================================= */
-
-function saveConversations() {
-
-	localStorage.setItem(
-		"tchoob-ai-conversations",
-		JSON.stringify(conversations)
-	);
+function uid() {
+	return crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
 }
 
-
-function loadConversations() {
-
-	const saved =
-		localStorage.getItem(
-			"tchoob-ai-conversations"
-		);
-
-	if (!saved) {
-		conversations = [];
-		return;
-	}
-
-	try {
-
-		conversations =
-			JSON.parse(saved);
-
-		if (!Array.isArray(conversations)) {
-			conversations = [];
-		}
-
-	} catch (error) {
-
-		conversations = [];
-	}
+function escapeHTML(value) {
+	return String(value ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
 }
-
-
-/* =========================================================
-   CONVERSATION
-========================================================= */
 
 function createConversation() {
-
-	const conversation = {
-
-		id:
-			Date.now().toString(),
-
-		title:
-			"گفتگوی جدید",
-
-		messages:
-			[]
-	};
-
-	conversations.unshift(
-		conversation
-	);
-
-	activeConversationId =
-		conversation.id;
-
-	saveConversations();
-
-	renderConversations();
-
-	renderMessages();
-
-	closeSidebar();
+	const conversation = { id: uid(), title: "گفت‌وگوی جدید", messages: [], createdAt: Date.now() };
+	state.conversations.unshift(conversation);
+	state.currentId = conversation.id;
+	save();
+	renderAll();
+	return conversation;
 }
 
-
-function getActiveConversation() {
-
-	return conversations.find(
-		conversation =>
-			conversation.id === activeConversationId
-	);
+function currentConversation() {
+	return state.conversations.find(item => item.id === state.currentId);
 }
 
-
-function selectConversation(id) {
-
-	activeConversationId = id;
-
-	saveConversations();
-
-	renderConversations();
-
-	renderMessages();
-
-	closeSidebar();
+function save() {
+	localStorage.setItem("tchoob-ai-conversations", JSON.stringify(state.conversations));
+	localStorage.setItem("tchoob-ai-current", state.currentId || "");
 }
 
-
-function deleteConversation(
-	event,
-	id
-) {
-
-	event.stopPropagation();
-
-	conversations =
-		conversations.filter(
-			conversation =>
-				conversation.id !== id
-		);
-
-	if (
-		activeConversationId === id
-	) {
-
-		if (conversations.length > 0) {
-
-			activeConversationId =
-				conversations[0].id;
-
-		} else {
-
-			activeConversationId = null;
-		}
-	}
-
-	saveConversations();
-
-	renderConversations();
-
-	renderMessages();
+function load() {
+	try { state.conversations = JSON.parse(localStorage.getItem("tchoob-ai-conversations") || "[]"); }
+	catch { state.conversations = []; }
+	state.currentId = localStorage.getItem("tchoob-ai-current") || state.conversations[0]?.id || null;
+	if (!state.currentId || !currentConversation()) { createConversation(); return; }
+	renderAll();
 }
-
-
-/* =========================================================
-   RENDER CONVERSATIONS
-========================================================= */
 
 function renderConversations() {
+	el.list.innerHTML = state.conversations.map(c => `
+		<button class="conversation-item${c.id === state.currentId ? " active" : ""}" type="button" data-id="${escapeHTML(c.id)}">
+			<strong>${escapeHTML(c.title)}</strong>
+			<small>${escapeHTML((c.messages.at(-1)?.content || "گفت‌وگوی جدید").slice(0,45))}</small>
+		</button>
+	`).join("");
 
-	conversationList.innerHTML = "";
-
-	if (conversations.length === 0) {
-
-		const empty =
-			document.createElement("div");
-
-		empty.style.padding = "20px 10px";
-
-		empty.style.textAlign = "center";
-
-		empty.style.fontSize = "11px";
-
-		empty.style.color =
-			"var(--text-soft)";
-
-		empty.textContent =
-			"هنوز گفتگویی وجود ندارد.";
-
-		conversationList.appendChild(
-			empty
-		);
-
-		return;
-	}
-
-
-	conversations.forEach(
-		conversation => {
-
-			const item =
-				document.createElement("div");
-
-			item.className =
-				"conversation-item";
-
-
-			if (
-				conversation.id ===
-				activeConversationId
-			) {
-
-				item.classList.add("active");
-			}
-
-
-			item.addEventListener(
-				"click",
-				() =>
-					selectConversation(
-						conversation.id
-					)
-			);
-
-
-			const icon =
-				document.createElement("div");
-
-			icon.className =
-				"conversation-icon";
-
-			icon.textContent =
-				"◌";
-
-
-			const name =
-				document.createElement("div");
-
-			name.className =
-				"conversation-name";
-
-			name.textContent =
-				conversation.title ||
-				"گفتگوی جدید";
-
-
-			const deleteButton =
-				document.createElement("button");
-
-			deleteButton.className =
-				"delete-conversation";
-
-			deleteButton.type =
-				"button";
-
-			deleteButton.textContent =
-				"×";
-
-			deleteButton.title =
-				"حذف گفتگو";
-
-
-			deleteButton.addEventListener(
-				"click",
-				event =>
-					deleteConversation(
-						event,
-						conversation.id
-					)
-			);
-
-
-			item.appendChild(icon);
-
-			item.appendChild(name);
-
-			item.appendChild(
-				deleteButton
-			);
-
-			conversationList.appendChild(
-				item
-			);
-		}
-	);
+	el.list.querySelectorAll(".conversation-item").forEach(button => {
+		button.addEventListener("click", () => {
+			state.currentId = button.dataset.id;
+			save(); renderAll(); el.sidebar.classList.remove("open");
+		});
+	});
 }
 
-
-/* =========================================================
-   RENDER MESSAGES
-========================================================= */
+function formatText(text) {
+	return escapeHTML(text).replace(/```([\s\S]*?)```/g,"<pre>$1</pre>").replace(/
+/g,"<br>");
+}
 
 function renderMessages() {
-
-	messagesElement.innerHTML = "";
-
-
-	const conversation =
-		getActiveConversation();
-
-
-	if (
-		!conversation ||
-		conversation.messages.length === 0
-	) {
-
-		messagesElement.appendChild(
-			createWelcome()
-		);
-
+	const conversation = currentConversation();
+	if (!conversation || !conversation.messages.length) {
+		el.messages.innerHTML = "";
+		el.messages.appendChild(el.welcome);
+		el.welcome.style.display = "";
 		return;
 	}
 
-
-	conversation.messages.forEach(
-		message => {
-
-			messagesElement.appendChild(
-				createMessageElement(
-					message.role,
-					message.content
-				)
-			);
-		}
-	);
-
-
-	scrollToBottom();
-}
-
-
-/* =========================================================
-   WELCOME
-========================================================= */
-
-function createWelcome() {
-
-	const wrapper =
-		document.createElement("div");
-
-	wrapper.className =
-		"welcome";
-
-
-	const logo =
-		document.createElement("div");
-
-	logo.className =
-		"welcome-logo";
-
-	logo.textContent =
-		"T";
-
-
-	const title =
-		document.createElement("h1");
-
-	title.textContent =
-		"سلام! من دستیار T-Choob هستم.";
-
-
-	const description =
-		document.createElement("p");
-
-	description.textContent =
-		"می‌تونی درباره محصولات، ایده‌ها، برنامه‌نویسی، طراحی و خیلی چیزهای دیگه با من صحبت کنی.";
-
-
-	const suggestions =
-		document.createElement("div");
-
-	suggestions.className =
-		"suggestions";
-
-
-	const suggestionData = [
-
-		[
-			"💡",
-			"برای گسترش T-Choob چه ایده‌هایی داری؟"
-		],
-
-		[
-			"🚀",
-			"چطور می‌توانم یک کسب‌وکار اینترنتی بهتر بسازم؟"
-		],
-
-		[
-			"🎨",
-			"یک ایده برای طراحی سایت T-Choob بده."
-		],
-
-		[
-			"🤖",
-			"چه قابلیت‌هایی می‌توانم به یک چت‌بات اضافه کنم؟"
-		]
-	];
-
-
-	suggestionData.forEach(
-		data => {
-
-			const button =
-				document.createElement("button");
-
-			button.className =
-				"suggestion";
-
-			button.type =
-				"button";
-
-
-			const icon =
-				document.createElement("span");
-
-			icon.textContent =
-				data[0];
-
-
-			const text =
-				document.createElement("span");
-
-			text.textContent =
-				data[1];
-
-
-			button.appendChild(icon);
-
-			button.appendChild(text);
-
-
-			button.addEventListener(
-				"click",
-				() => {
-
-					messageInput.value =
-						data[1];
-
-					sendMessage();
-				}
-			);
-
-
-			suggestions.appendChild(
-				button
-			);
-		}
-	);
-
-
-	wrapper.appendChild(logo);
-
-	wrapper.appendChild(title);
-
-	wrapper.appendChild(description);
-
-	wrapper.appendChild(suggestions);
-
-
-	return wrapper;
-}
-
-
-/* =========================================================
-   MESSAGE ELEMENT
-========================================================= */
-
-function createMessageElement(
-	role,
-	content
-) {
-
-	const message =
-		document.createElement("div");
-
-	message.className =
-		`message ${role}`;
-
-
-	const messageContent =
-		document.createElement("div");
-
-	messageContent.className =
-		"message-content";
-
-
-	const label =
-		document.createElement("div");
-
-	label.className =
-		"message-label";
-
-	label.textContent =
-		role === "user"
-			? "شما"
-			: "T-Choob AI";
-
-
-	const bubble =
-		document.createElement("div");
-
-	bubble.className =
-		"message-bubble";
-
-	bubble.textContent =
-		content;
-
-
-	messageContent.appendChild(label);
-
-	messageContent.appendChild(bubble);
-
-
-	if (role === "assistant") {
-
-		const actions =
-			document.createElement("div");
-
-		actions.className =
-			"message-actions";
-
-
-		const copyButton =
-			document.createElement("button");
-
-		copyButton.type =
-			"button";
-
-		copyButton.textContent =
-			"کپی";
-
-
-		copyButton.addEventListener(
-			"click",
-			() => {
-
-				navigator.clipboard
-					.writeText(content)
-					.then(() => {
-
-						copyButton.textContent =
-							"کپی شد";
-
-						setTimeout(
-							() => {
-
-								copyButton.textContent =
-									"کپی";
-
-							},
-							1200
-						);
-					});
+	el.welcome.style.display = "none";
+	el.messages.innerHTML = conversation.messages.map(message => {
+		const user = message.role === "user";
+		const attachments = (message.attachments || []).map(file => {
+			if (file.type?.startsWith("image/") && file.dataUrl) {
+				return `<div class="attachment-card"><img class="generated-image" src="${file.dataUrl}" alt="${escapeHTML(file.name)}"><div>${escapeHTML(file.name)}</div></div>`;
 			}
-		);
+			return `<div class="attachment-card">📎 ${escapeHTML(file.name)}</div>`;
+		}).join("");
 
+		return `<div class="message-row ${user ? "user" : "assistant"}">
+			<div class="message-avatar">${user ? "ش" : "T"}</div>
+			<div class="message-bubble">${formatText(message.content || "")}${attachments}</div>
+		</div>`;
+	}).join("");
 
-		actions.appendChild(
-			copyButton
-		);
-
-		messageContent.appendChild(
-			actions
-		);
-	}
-
-
-	message.appendChild(
-		messageContent
-	);
-
-
-	return message;
+	el.messages.scrollTop = el.messages.scrollHeight;
 }
 
+function renderAll() { renderConversations(); renderMessages(); }
 
-/* =========================================================
-   SEND MESSAGE
-========================================================= */
+function setTyping(show) {
+	document.getElementById("typing-row")?.remove();
+	if (!show) return;
+	const row = document.createElement("div");
+	row.id = "typing-row"; row.className = "message-row assistant";
+	row.innerHTML = `<div class="message-avatar">T</div><div class="message-bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
+	el.messages.appendChild(row);
+	el.messages.scrollTop = el.messages.scrollHeight;
+}
+
+function autoResize() {
+	el.input.style.height = "auto";
+	el.input.style.height = Math.min(el.input.scrollHeight,180) + "px";
+}
+
+function renderAttachmentPreview() {
+	el.preview.innerHTML = state.attachments.map((file,index) => `
+		<div class="preview-item">
+			${file.type.startsWith("image/") && file.dataUrl ? `<img src="${file.dataUrl}" alt="">` : "📎"}
+			<span>${escapeHTML(file.name)}</span>
+			<button class="preview-remove" type="button" data-index="${index}">×</button>
+		</div>
+	`).join("");
+
+	el.preview.querySelectorAll(".preview-remove").forEach(button => button.addEventListener("click", () => {
+		state.attachments.splice(Number(button.dataset.index),1);
+		renderAttachmentPreview();
+	}));
+}
+
+function readFile(file) {
+	return new Promise((resolve,reject) => {
+		const reader = new FileReader();
+		reader.onload = () => resolve({name:file.name,type:file.type || "application/octet-stream",size:file.size,dataUrl:reader.result});
+		reader.onerror = reject;
+		reader.readAsDataURL(file);
+	});
+}
+
+async function addFiles(fileList) {
+	const files = Array.from(fileList);
+	if (state.attachments.length + files.length > 5) {
+		alert("حداکثر ۵ فایل را هم‌زمان می‌توانی ارسال کنی.");
+		return;
+	}
+	for (const file of files) {
+		if (file.size > 10 * 1024 * 1024) {
+			alert(`فایل «${file.name}» بزرگ‌تر از ۱۰ مگابایت است.`);
+			continue;
+		}
+		state.attachments.push(await readFile(file));
+	}
+	renderAttachmentPreview();
+}
 
 async function sendMessage() {
+	if (state.generating) return;
+	const text = el.input.value.trim();
+	if (!text && !state.attachments.length) return;
 
-	if (isGenerating) {
-		return;
-	}
+	let conversation = currentConversation() || createConversation();
+	const attachments = [...state.attachments];
 
+	conversation.messages.push({ role:"user", content:text, attachments });
+	if (conversation.title === "گفت‌وگوی جدید") conversation.title = text.slice(0,35) || attachments[0]?.name || "گفت‌وگوی جدید";
 
-	const text =
-		messageInput.value.trim();
-
-
-	if (!text) {
-		return;
-	}
-
-
-	if (!activeConversationId) {
-		createConversation();
-	}
-
-
-	const conversation =
-		getActiveConversation();
-
-
-	if (!conversation) {
-		return;
-	}
-
-
-	conversation.messages.push({
-
-		role: "user",
-
-		content: text
-	});
-
-
-	if (
-		conversation.messages.length === 1
-	) {
-
-		conversation.title =
-			text.length > 30
-				? text.slice(0, 30) + "..."
-				: text;
-	}
-
-
-	messageInput.value = "";
-
-	autoResizeTextarea();
-
-	saveConversations();
-
-	renderConversations();
-
-	renderMessages();
-
-
-	await generateAssistantResponse(
-		conversation,
-		text
-	);
-}
-
-
-/* =========================================================
-   AI RESPONSE
-========================================================= */
-
-async function generateAssistantResponse(
-	conversation,
-	userMessage
-) {
-
-	isGenerating = true;
-
-	sendButton.disabled = true;
-
-
-	const typing =
-		createTypingElement();
-
-	messagesElement.appendChild(
-		typing
-	);
-
-	scrollToBottom();
-
+	el.input.value = ""; state.attachments = []; renderAttachmentPreview(); autoResize(); save(); renderAll();
+	state.generating = true; el.send.disabled = true; setTyping(true);
 
 	try {
-
-		const response =
-			await fetch(
-				"https://t-choob-ai-api-api.vercel.app/api/chat",
-				{
-					method: "POST",
-
-					headers: {
-						"Content-Type":
-							"application/json"
-					},
-
-					body: JSON.stringify({
-						messages:
-							conversation.messages
-					})
-				}
-			);
-
-
-		const data =
-			await response.json();
-
-
-		if (!response.ok) {
-
-			throw new Error(
-				data.error ||
-				"خطا در ارتباط با سرور."
-			);
-		}
-
-
-		const answer =
-			data.answer ||
-			"پاسخی دریافت نشد.";
-
-
-		conversation.messages.push({
-
-			role: "assistant",
-
-			content: answer
-
+		const response = await fetch(`${API_BASE_URL}/api/chat`, {
+			method:"POST", headers:{"Content-Type":"application/json"},
+			body:JSON.stringify({messages:conversation.messages})
 		});
-
-
-		saveConversations();
-
-		renderMessages();
-
-
+		const data = await response.json();
+		if (!response.ok) throw new Error(data.error || "خطا در ارتباط با سرور.");
+		conversation.messages.push({role:"assistant",content:data.answer || "پاسخی دریافت نشد."});
 	} catch (error) {
-
-		console.error(
-			"Chat Error:",
-			error
-		);
-
-
-		typing.remove();
-
-
-		conversation.messages.push({
-
-			role: "assistant",
-
-			content:
-				"متأسفانه در ارتباط با سرویس هوش مصنوعی مشکلی پیش آمد. لطفاً دوباره امتحان کن."
-
-		});
-
-
-		saveConversations();
-
-		renderMessages();
-
-
+		console.error(error);
+		conversation.messages.push({role:"assistant",content:"در ارتباط با سرویس هوش مصنوعی مشکلی پیش آمد. آدرس API و تنظیمات Vercel را بررسی کن."});
 	} finally {
-
-		isGenerating = false;
-
-		sendButton.disabled = false;
+		save(); state.generating = false; el.send.disabled = false; setTyping(false); renderAll();
 	}
 }
 
-/* =========================================================
-   DEMO RESPONSE
-========================================================= */
+async function generateImage() {
+	if (state.generating) return;
+	const prompt = el.input.value.trim();
+	if (!prompt) { alert("اول توضیح تصویر را بنویس."); el.input.focus(); return; }
 
-function createDemoResponse(
-	message
-) {
+	let conversation = currentConversation() || createConversation();
+	conversation.messages.push({role:"user",content:`🎨 تولید تصویر: ${prompt}`});
+	el.input.value = ""; autoResize(); save(); renderAll();
+	state.generating = true; el.send.disabled = true; setTyping(true);
 
-	const text =
-		message.toLowerCase();
-
-
-	if (
-		text.includes("api") ||
-		text.includes("ای پی آی")
-	) {
-
-		return (
-			"API به تو اجازه می‌دهد قابلیت‌های یک سرویس " +
-			"را داخل سایت خودت استفاده کنی. برای T-Choob " +
-			"می‌توانیم بعداً یک Backend بسازیم که درخواست " +
-			"کاربر را دریافت کند و به مدل هوش مصنوعی ارسال کند."
-		);
+	try {
+		const response = await fetch(`${API_BASE_URL}/api/generate-image`, {
+			method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({prompt})
+		});
+		const data = await response.json();
+		if (!response.ok) throw new Error(data.error || "تولید تصویر انجام نشد.");
+		conversation.messages.push({
+			role:"assistant",
+			content:data.revisedPrompt || "تصویر تولید شد.",
+			attachments:[{name:"generated-image.png",type:"image/png",dataUrl:data.imageDataUrl}]
+		});
+	} catch (error) {
+		conversation.messages.push({role:"assistant",content:error.message || "تولید تصویر انجام نشد."});
+	} finally {
+		save(); state.generating = false; el.send.disabled = false; setTyping(false); renderAll();
 	}
-
-
-	if (
-		text.includes("گسترش") ||
-		text.includes("ایده")
-	) {
-
-		return (
-			"برای گسترش T-Choob می‌توانیم آن را از یک " +
-			"فروشگاه صرف به یک پلتفرم تبدیل کنیم؛ مثلاً " +
-			"دستیار هوشمند، بخش آموزش، ابزارهای آنلاین، " +
-			"سیستم پیشنهاد محصول و حتی خدمات مبتنی بر هوش مصنوعی."
-		);
-	}
-
-
-	if (
-		text.includes("سایت") ||
-		text.includes("طراحی")
-	) {
-
-		return (
-			"می‌توانیم هویت T-Choob را از یک فروشگاه ساده " +
-			"به یک برند دیجیتال تبدیل کنیم. همین چت‌بات " +
-			"می‌تواند یکی از اولین بخش‌های این توسعه باشد."
-		);
-	}
-
-
-	return (
-		"این نسخه فعلاً یک نمونه اولیه از رابط T-Choob AI " +
-		"است. رابط چت آماده است و مرحله بعدی می‌تواند " +
-		"اتصال آن به Backend و OpenAI API باشد."
-	);
 }
-
-
-/* =========================================================
-   TYPING ELEMENT
-========================================================= */
-
-function createTypingElement() {
-
-	const message =
-		document.createElement("div");
-
-	message.className =
-		"message assistant";
-
-
-	const content =
-		document.createElement("div");
-
-	content.className =
-		"message-content";
-
-
-	const label =
-		document.createElement("div");
-
-	label.className =
-		"message-label";
-
-	label.textContent =
-		"T-Choob AI";
-
-
-	const bubble =
-		document.createElement("div");
-
-	bubble.className =
-		"message-bubble typing-bubble";
-
-
-	for (
-		let i = 0;
-		i < 3;
-		i++
-	) {
-
-		const dot =
-			document.createElement("span");
-
-		bubble.appendChild(dot);
-	}
-
-
-	content.appendChild(label);
-
-	content.appendChild(bubble);
-
-	message.appendChild(content);
-
-
-	return message;
-}
-
-
-/* =========================================================
-   UTILITY
-========================================================= */
-
-function delay(milliseconds) {
-
-	return new Promise(
-		resolve =>
-			setTimeout(
-				resolve,
-				milliseconds
-			)
-	);
-}
-
-
-function scrollToBottom() {
-
-	requestAnimationFrame(() => {
-
-		const chatArea =
-			document.querySelector(
-				".chat-area"
-			);
-
-		chatArea.scrollTop =
-			chatArea.scrollHeight;
-	});
-}
-
-
-function autoResizeTextarea() {
-
-	messageInput.style.height =
-		"auto";
-
-	messageInput.style.height =
-		Math.min(
-			messageInput.scrollHeight,
-			150
-		) + "px";
-}
-
-
-/* =========================================================
-   THEME
-========================================================= */
-
-function applyTheme() {
-
-	const dark =
-		localStorage.getItem(
-			"tchoob-ai-theme"
-		) === "dark";
-
-
-	document.documentElement
-		.classList.toggle(
-			"dark-mode",
-			dark
-		);
-
-
-	themeText.textContent =
-		dark
-			? "حالت روشن"
-			: "حالت تاریک";
-}
-
 
 function toggleTheme() {
-
-	const dark =
-		document.documentElement
-			.classList.contains(
-				"dark-mode"
-			);
-
-
-	localStorage.setItem(
-		"tchoob-ai-theme",
-		dark
-			? "light"
-			: "dark"
-	);
-
-
-	applyTheme();
+	const dark = document.documentElement.classList.toggle("dark-mode");
+	localStorage.setItem("tchoob-ai-theme",dark ? "dark" : "light");
+	el.theme.textContent = dark ? "حالت روشن" : "حالت تاریک";
 }
 
-
-/* =========================================================
-   SIDEBAR MOBILE
-========================================================= */
-
-function openSidebar() {
-
-	sidebar.classList.add(
-		"open"
-	);
-
-	overlay.classList.add(
-		"active"
-	);
+function applyTheme() {
+	const dark = localStorage.getItem("tchoob-ai-theme") === "dark";
+	document.documentElement.classList.toggle("dark-mode",dark);
+	el.theme.textContent = dark ? "حالت روشن" : "حالت تاریک";
 }
 
-
-function closeSidebar() {
-
-	sidebar.classList.remove(
-		"open"
-	);
-
-	overlay.classList.remove(
-		"active"
-	);
-}
-
-
-/* =========================================================
-   EVENTS
-========================================================= */
-
-sendButton.addEventListener(
-	"click",
-	sendMessage
-);
-
-
-newChatButton.addEventListener(
-	"click",
-	createConversation
-);
-
-
-themeToggle.addEventListener(
-	"click",
-	toggleTheme
-);
-
-
-menuButton.addEventListener(
-	"click",
-	openSidebar
-);
-
-
-sidebarClose.addEventListener(
-	"click",
-	closeSidebar
-);
-
-
-overlay.addEventListener(
-	"click",
-	closeSidebar
-);
-
-
-messageInput.addEventListener(
-	"input",
-	autoResizeTextarea
-);
-
-
-messageInput.addEventListener(
-	"keydown",
-	event => {
-
-		if (
-			event.key === "Enter" &&
-			!event.shiftKey
-		) {
-
-			event.preventDefault();
-
-			sendMessage();
-		}
-	}
-);
-
-
-/* =========================================================
-   INITIALIZE
-========================================================= */
-
-loadConversations();
+el.form.addEventListener("submit", e => { e.preventDefault(); sendMessage(); });
+el.input.addEventListener("input", autoResize);
+el.input.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }});
+el.attach.addEventListener("click", () => el.fileInput.click());
+el.fileInput.addEventListener("change", async () => { await addFiles(el.fileInput.files); el.fileInput.value = ""; });
+el.generateImage.addEventListener("click", generateImage);
+el.newChat.addEventListener("click", createConversation);
+el.theme.addEventListener("click", toggleTheme);
+el.clear.addEventListener("click", () => {
+	if (!confirm("همه گفت‌وگوها پاک شوند؟")) return;
+	localStorage.removeItem("tchoob-ai-conversations"); localStorage.removeItem("tchoob-ai-current");
+	state.conversations=[]; state.currentId=null; createConversation();
+});
+el.mobileMenu.addEventListener("click", () => el.sidebar.classList.toggle("open"));
+document.querySelectorAll(".suggestions button").forEach(button => button.addEventListener("click", () => {
+	el.input.value = button.dataset.prompt; autoResize(); el.input.focus();
+}));
 
 applyTheme();
-
-
-if (conversations.length > 0) {
-
-	activeConversationId =
-		conversations[0].id;
-}
-
-
-renderConversations();
-
-renderMessages();
-
-autoResizeTextarea();
+load();
