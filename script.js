@@ -698,44 +698,92 @@ async function generateAssistantResponse(
 	scrollToBottom();
 
 
-	/*
-	=========================================================
-	فعلاً پاسخ آزمایشی
+	try {
 
-	بعداً این قسمت را به Backend متصل می‌کنیم.
-	=========================================================
-	*/
+		const response =
+			await fetch(
+				"https://YOUR-VERCEL-URL.vercel.app/api/chat",
+				{
+					method: "POST",
 
-	await delay(900);
+					headers: {
+						"Content-Type":
+							"application/json"
+					},
+
+					body: JSON.stringify({
+						messages:
+							conversation.messages
+					})
+				}
+			);
 
 
-	const response =
-		createDemoResponse(
-			userMessage
+		const data =
+			await response.json();
+
+
+		if (!response.ok) {
+
+			throw new Error(
+				data.error ||
+				"خطا در ارتباط با سرور."
+			);
+		}
+
+
+		const answer =
+			data.answer ||
+			"پاسخی دریافت نشد.";
+
+
+		conversation.messages.push({
+
+			role: "assistant",
+
+			content: answer
+
+		});
+
+
+		saveConversations();
+
+		renderMessages();
+
+
+	} catch (error) {
+
+		console.error(
+			"Chat Error:",
+			error
 		);
 
 
-	typing.remove();
+		typing.remove();
 
 
-	conversation.messages.push({
+		conversation.messages.push({
 
-		role: "assistant",
+			role: "assistant",
 
-		content: response
-	});
+			content:
+				"متأسفانه در ارتباط با سرویس هوش مصنوعی مشکلی پیش آمد. لطفاً دوباره امتحان کن."
 
-
-	saveConversations();
-
-	renderMessages();
+		});
 
 
-	isGenerating = false;
+		saveConversations();
 
-	sendButton.disabled = false;
+		renderMessages();
+
+
+	} finally {
+
+		isGenerating = false;
+
+		sendButton.disabled = false;
+	}
 }
-
 
 /* =========================================================
    DEMO RESPONSE
